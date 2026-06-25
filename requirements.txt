@@ -1,0 +1,17 @@
+# 运行依赖(与 pyproject.toml 保持一致,方便 pip install -r 使用)
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.6
+pydantic-settings>=2.3
+openai>=1.30
+qdrant-client>=1.12
+tenacity>=8.2
+aiosqlite>=0.19
+python-multipart>=0.0.9
+pypdf>=4.0
+python-docx>=1.1
+beautifulsoup4>=4.12
+httpx>=0.27
+
+# 可选:多实例部署时的会话记忆后端
+# redis>=5.0
