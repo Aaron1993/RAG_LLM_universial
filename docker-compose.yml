@@ -41,7 +41,18 @@ services:
   #   volumes:
   #     - tei_data:/data
 
-  # 可选:多实例部署时启用,并将 .env 的 MEMORY_BACKEND 改为 redis
+  # 可选:用 Redis Stack 替代 Qdrant 做向量库(含 RediSearch + RedisJSON)。
+  # 启用后在 .env 设置:VECTOR_STORE=redis  REDIS_VECTOR_URL=redis://redis-stack:6379/0
+  # redis-stack:
+  #   image: redis/redis-stack-server:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+
+  # 可选:多实例部署时的会话记忆后端(与上面的向量库 Redis 可共用同一实例)
+  # 将 .env 的 MEMORY_BACKEND 改为 redis
   # redis:
   #   image: redis:7-alpine
   #   restart: unless-stopped
@@ -52,3 +63,4 @@ volumes:
   qdrant_data:
   app_data:
   # tei_data:
+  # redis_data:

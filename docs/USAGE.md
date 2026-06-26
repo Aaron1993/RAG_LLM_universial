@@ -19,7 +19,7 @@
 |---|---|---|
 | `LLMProvider` | OpenAI 兼容(Qwen) | `app/core/llm/` |
 | `EmbeddingProvider` | OpenAI 兼容(text-embedding-v3) | `app/core/embeddings/` |
-| `VectorStore` | Qdrant | `app/core/vectorstore/` |
+| `VectorStore` | Qdrant(可切 Redis Stack) | `app/core/vectorstore/` |
 | `Reranker` | NoOp(默认关闭)/ DashScope | `app/core/reranker/` |
 | `ConversationStore` | SQLite(可切 memory / redis) | `app/memory/` |
 | `DocumentLoader` | pdf / docx / txt / md / html | `app/ingestion/loaders/` |
@@ -35,7 +35,9 @@
 | `DASHSCOPE_API_KEY` | 阿里百炼密钥(LLM 与 Embedding 默认共用) |
 | `LLM_MODEL` | 对话模型,默认 `qwen-plus`(可选 `qwen-max`/`qwen-turbo`) |
 | `EMBEDDING_MODEL` / `EMBEDDING_DIM` | 向量模型与维度,**维度必须与已建集合一致** |
-| `QDRANT_URL` / `QDRANT_COLLECTION` | 向量库地址与集合名 |
+| `VECTOR_STORE` | 向量库:`qdrant`(默认)/ `redis`(Redis Stack) |
+| `QDRANT_URL` / `QDRANT_COLLECTION` | Qdrant 地址与集合名 |
+| `REDIS_VECTOR_URL` / `REDIS_INDEX_NAME` / `REDIS_VECTOR_PREFIX` / `REDIS_INDEX_TAGS` | Redis Stack 向量库配置 |
 | `API_KEYS` | 逗号分隔的服务访问密钥;**留空则不鉴权(仅限本地开发)** |
 | `RETRIEVAL_TOP_K` / `SCORE_THRESHOLD` | 检索条数与分数阈值 |
 | `RERANKER_ENABLED` / `RERANKER_PROVIDER` | 重排开关与实现 |
@@ -171,6 +173,44 @@ curl -X DELETE http://localhost:8000/v1/conversations/<cid> -H "X-API-Key: $KEY"
 3. **元数据 / 过滤字段**:入库时通过 `metadata` / `tenant` 写入,问答时通过 `filters` 过滤。
 4. **(可选)新文件类型**:在 `app/ingestion/loaders/base.py` 注册一个 `DocumentLoader`。
 5. **(可选)开启重排**:`.env` 设 `RERANKER_ENABLED=true`、`RERANKER_PROVIDER=dashscope`。
+
+---
+
+## 五点五、向量库切换:Qdrant ↔ Redis Stack
+
+框架内置两种向量库实现,通过 `VECTOR_STORE` 切换,其余代码与 API 不变。
+
+**Qdrant(默认):**
+```bash
+VECTOR_STORE=qdrant
+QDRANT_URL=http://localhost:6333
+QDRANT_COLLECTION=rag_documents
+```
+
+**Redis Stack(RediSearch + RedisJSON,做法对齐既有 Java 实现):**
+```bash
+# 1) 启动 Redis Stack
+docker run -p 6379:6379 redis/redis-stack-server:latest
+#   或取消注释 docker-compose.yml 中的 redis-stack 服务
+
+# 2) 安装客户端
+pip install redis
+
+# 3) .env 切换
+VECTOR_STORE=redis
+REDIS_VECTOR_URL=redis://localhost:6379/0      # compose 内用 redis://redis-stack:6379/0
+REDIS_INDEX_NAME=rag_knowledge_index
+REDIS_VECTOR_PREFIX=embedding:
+REDIS_INDEX_TAGS=document_id,source,tenant     # 可用于 filters 的字段(需建索引)
+```
+
+实现要点(与 Java 版一致):
+- 存储:`JSON.SET <prefix><id> $ {"text","vector":[...],"metadata":{...}}`;
+- 索引:`FT.CREATE ... ON JSON ... $.vector VECTOR HNSW ... DIM <EMBEDDING_DIM> DISTANCE_METRIC COSINE`;
+- 检索:`FT.SEARCH "<filter>=>[KNN k @vector $vec ...]"`,查询向量以小端 FLOAT32 字节传入,相似度 `score=(2-distance)/2`(范围 0~1,与 Qdrant 语义一致);
+- 过滤:只有声明在 `REDIS_INDEX_TAGS` 里的字段可用于 `filters`(其余会被忽略并告警)。
+
+> ⚠️ 两者都用余弦相似度且 `EMBEDDING_DIM` 必须与模型一致;切换向量库或改维度后需重建索引/集合(Redis 可 `FT.DROPINDEX` 或换 `REDIS_INDEX_NAME`)。
 
 ---
 

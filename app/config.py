@@ -69,12 +69,21 @@ class Settings(BaseSettings):
     tei_truncate: bool = True
 
     # ---------- 向量数据库 ----------
-    vector_store: Literal["qdrant"] = "qdrant"
+    vector_store: Literal["qdrant", "redis"] = "qdrant"
+    retrieval_top_k: int = 5
+    score_threshold: float = 0.0
+
+    # Qdrant(vector_store=qdrant 时生效)
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""
     qdrant_collection: str = "rag_documents"
-    retrieval_top_k: int = 5
-    score_threshold: float = 0.0
+
+    # Redis Stack(vector_store=redis 时生效,需 RediSearch+RedisJSON)
+    redis_vector_url: str = "redis://localhost:6379/0"
+    redis_index_name: str = "rag_knowledge_index"
+    redis_vector_prefix: str = "embedding:"
+    # 可作为 filters 过滤的 TAG 字段(需在建索引时声明),逗号分隔
+    redis_index_tags: Annotated[list[str], NoDecode] = ["document_id", "source", "tenant"]
 
     # ---------- 重排序(默认关闭) ----------
     reranker_enabled: bool = False
@@ -92,7 +101,7 @@ class Settings(BaseSettings):
     chunk_size: int = 800
     chunk_overlap: int = 120
 
-    @field_validator("api_keys", "cors_origins", mode="before")
+    @field_validator("api_keys", "cors_origins", "redis_index_tags", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:
         """允许用逗号分隔的字符串配置列表字段。"""
