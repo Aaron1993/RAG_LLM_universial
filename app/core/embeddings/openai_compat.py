@@ -83,3 +83,6 @@ class OpenAICompatEmbedding(EmbeddingProvider):
     async def embed_query(self, text: str) -> list[float]:
         result = await self._embed_batch([text])
         return result[0]
+
+    async def close(self) -> None:
+        await self._client.close()

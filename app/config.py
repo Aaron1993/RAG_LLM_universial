@@ -51,7 +51,9 @@ class Settings(BaseSettings):
     llm_max_retries: int = 2
 
     # ---------- 向量化 ----------
-    embedding_provider: Literal["openai_compat"] = "openai_compat"
+    # openai_compat: 百炼/DashScope 等 OpenAI 兼容 API
+    # tei: 本地 HuggingFace text-embeddings-inference(如 BAAI/bge-large-zh-v1.5)
+    embedding_provider: Literal["openai_compat", "tei"] = "openai_compat"
     embedding_base_url: str = ""
     embedding_api_key: str = ""
     embedding_model: str = "text-embedding-v3"
@@ -59,6 +61,12 @@ class Settings(BaseSettings):
     embedding_batch_size: int = 16
     embedding_timeout: float = 30.0
     embedding_max_retries: int = 2
+
+    # 本地 TEI 服务(embedding_provider=tei 时生效)
+    tei_url: str = "http://localhost:8080"
+    tei_api_key: str = ""
+    tei_normalize: bool = True
+    tei_truncate: bool = True
 
     # ---------- 向量数据库 ----------
     vector_store: Literal["qdrant"] = "qdrant"

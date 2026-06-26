@@ -44,6 +44,33 @@
 
 > ⚠️ 修改 `EMBEDDING_DIM` 后需重建集合(删除旧集合或换 `QDRANT_COLLECTION`),否则维度不匹配会写入失败。
 
+### 本地 Embedding(HuggingFace TEI)
+
+除百炼 API 外,框架支持本地/私有化部署的开源向量模型(如 **BAAI/bge-large-zh-v1.5**),
+通过 HuggingFace [text-embeddings-inference (TEI)](https://github.com/huggingface/text-embeddings-inference) 部署为 HTTP 服务。
+
+1. 启动 TEI(GPU 示例):
+   ```bash
+   docker run --gpus all -p 8080:80 -v $PWD/tei-data:/data \
+     ghcr.io/huggingface/text-embeddings-inference:latest \
+     --model-id BAAI/bge-large-zh-v1.5
+   # CPU 机器使用镜像 ...:cpu-latest
+   ```
+   (`docker-compose.yml` 中已内置一份注释好的 `tei` 服务,取消注释即可。)
+
+2. 在 `.env` 中切换:
+   ```bash
+   EMBEDDING_PROVIDER=tei
+   TEI_URL=http://localhost:8080      # compose 内用 http://tei:80
+   EMBEDDING_DIM=1024                 # bge-large-zh-v1.5=1024 / bge-base-zh=768 / bge-small=512
+   # TEI_API_KEY=...                  # 仅当 TEI 以 --api-key 启动
+   ```
+
+3. 维度对齐:`EMBEDDING_DIM` 必须与所选模型一致,改了维度要重建集合(见上方提示)。
+
+> 框架调用 TEI 原生 `POST /embed` 接口(默认 `normalize=true` 配合余弦距离、`truncate=true` 防超长)。
+> LLM 与 Embedding 相互独立:可「百炼 Qwen 生成 + 本地 BGE 向量化」混搭。
+
 ---
 
 ## 三、API 一览

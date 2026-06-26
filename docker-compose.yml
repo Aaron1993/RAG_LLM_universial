@@ -29,6 +29,18 @@ services:
       qdrant:
         condition: service_healthy
 
+  # 可选:本地 Embedding(HuggingFace TEI)。启用后在 .env 设置:
+  #   EMBEDDING_PROVIDER=tei  TEI_URL=http://tei:80  EMBEDDING_DIM=1024
+  # GPU 机器把镜像换成 ...:latest 并加 deploy.resources 预留 GPU;CPU 用 -cpu 镜像。
+  # tei:
+  #   image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+  #   restart: unless-stopped
+  #   command: ["--model-id", "BAAI/bge-large-zh-v1.5"]
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - tei_data:/data
+
   # 可选:多实例部署时启用,并将 .env 的 MEMORY_BACKEND 改为 redis
   # redis:
   #   image: redis:7-alpine
@@ -39,3 +51,4 @@ services:
 volumes:
   qdrant_data:
   app_data:
+  # tei_data:

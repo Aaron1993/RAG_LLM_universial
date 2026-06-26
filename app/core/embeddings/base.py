@@ -22,3 +22,7 @@ class EmbeddingProvider(ABC):
     async def embed_query(self, text: str) -> list[float]:
         """向量化单条查询。"""
         raise NotImplementedError
+
+    async def close(self) -> None:
+        """释放底层资源(如本地 HTTP 连接池);默认无操作。"""
+        return None

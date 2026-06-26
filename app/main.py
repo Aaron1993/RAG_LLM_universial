@@ -58,10 +58,13 @@ async def lifespan(app: FastAPI):
     finally:
         store = getattr(app.state, "vectorstore", None)
         memory = getattr(app.state, "memory", None)
+        embeddings = getattr(app.state, "embeddings", None)
         if store is not None:
             await store.close()
         if memory is not None:
             await memory.close()
+        if embeddings is not None and hasattr(embeddings, "close"):
+            await embeddings.close()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
